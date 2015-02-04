@@ -8,7 +8,7 @@ Le script est appelé une fois pour créer les différentes tables dans la BDD
 USAGE
 
 # Inclusion des fonctions
-REP_COURANT="$HOME/lms_scripts"
+REP_COURANT="/root/lms_scripts"
 . ${REP_COURANT}/fonctions.sh
 
 

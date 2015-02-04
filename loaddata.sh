@@ -4,7 +4,7 @@
 
 # MYSQL_ARGS="--defaults-file=/etc/mysql/debian.cnf"
 # Inclusion des fonctions
-REP_COURANT="$HOME/lms_scripts"
+REP_COURANT="/root/lms_scripts"
 . ${REP_COURANT}/fonctions.sh
 
 DELIM=";"

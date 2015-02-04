@@ -12,7 +12,7 @@ HISTORIQUE
 DELIM=","
 
 # Inclusion des fonctions
-REP_COURANT="$HOME/lms_scripts"
+REP_COURANT="/root/lms_scripts"
 . ${REP_COURANT}/fonctions.sh
 
 
