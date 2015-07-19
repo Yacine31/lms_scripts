@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # Inclusion des fonctions
-REP_COURANT="/root/lms_scripts"
-. ${REP_COURANT}/fonctions.sh
-. ${REP_COURANT}/fonctions_xml.sh
+#export SCRIPTS_DIR="/home/merlin/lms_scripts"
+. ${SCRIPTS_DIR}/fonctions.sh
+. ${SCRIPTS_DIR}/fonctions_xml.sh
 
 #--------------------------------------------------------------------------------#
 # Option Partitioning
@@ -25,12 +25,15 @@ order by c.physical_server, a.host_name, a.instance_name;
 RESULT=$(mysql -u${MYSQL_USER} -p${MYSQL_PWD} --database=${MYSQL_DB} -e "$SQL")
 if [ "$RESULT" != "" ]; then
 	if [ "$DEBUG" == "1" ]; then echo "[DEBUG] - $SQL"; fi
+	echo $YELLOW
 	echo "#--------------------------------------------------------------------------------#"
 	echo "# Option Partitioning"
 	echo "#--------------------------------------------------------------------------------#"
 
 	echo "Liste des serveurs, instances et propriétaire des objets partitionés"
+	echo $RED
 	echo "Les comptes $SQL_NOT_IN ne sont pas pris en compte"
+	echo $NOCOLOR
 	mysql -u${MYSQL_USER} -p${MYSQL_PWD} --database=${MYSQL_DB} -e "$SQL"
 
 	export SHEET_NAME=Part
@@ -44,19 +47,24 @@ if [ "$RESULT" != "" ]; then
 	#--------- Calcul des processeurs : OS != AIX
 	#--------------------------------------------------------------------------------#
 
-	export SQL="select distinct c.physical_server, c.OS, c.Processor_Type, c.Socket, c.Cores_per_Socket, c.Total_Cores, '' as Core_Factor, '' as Proc_Oracle
-	FROM $tSegments a left join $tCPU c on a.Host_Name=c.Host_Name
-	where c.os not like '%AIX%' and a.owner not in $SQL_NOT_IN 
-	group by c.physical_server
-	having count(a.Host_Name) > 0
-	order by c.physical_server;
-	"
+	export SELECT="distinct c.physical_server, c.OS, c.Processor_Type, c.Socket, c.Cores_per_Socket, c.Total_Cores, Core_Factor, Total_Cores*Core_Factor as Proc_Oracle"
+
+	export SELECT_NON_AIX="distinct c.physical_server, c.OS, c.Processor_Type, c.Socket, c.Cores_per_Socket, c.Total_Cores, Core_Factor, Total_Cores*Core_Factor as Proc_Oracle"
+	export FROM=" $tSegments a left join $tCPU c on a.Host_Name=c.Host_Name"
+	export WHERE="c.os not like '%AIX%' and a.owner not in $SQL_NOT_IN" 
+	export GROUPBY="c.physical_server having count(a.Host_Name) > 0 order by c.physical_server;"
+
+	SQL="select $SELECT from $FROM where $WHERE group by $GROUPBY"
+	if [ "$DEBUG" == "1" ]; then echo "[DEBUG - $0 ] - $SQL"; fi
 
 	RESULT=$(mysql -u${MYSQL_USER} -p${MYSQL_PWD} --database=${MYSQL_DB} -e "$SQL")
 	if [ "$RESULT" != "" ]; then
-		if [ "$DEBUG" == "1" ]; then echo "[DEBUG] - $SQL"; fi
-		echo "Calcul des processeurs Oracle par serveur physique (OS != AIX) :"
-		mysql -u${MYSQL_USER} -p${MYSQL_PWD} --database=${MYSQL_DB} -e "$SQL"
+                # affichage du tableau pour le calcul du nombre de processeur
+                print_proc_oracle $SELECT'|'$FROM'|'$WHERE
+
+		# echo "Calcul des processeurs Oracle par serveur physique (OS != AIX) :"
+		# mysql -u${MYSQL_USER} -p${MYSQL_PWD} --database=${MYSQL_DB} -e "$SQL"
+
 		# export des données
 		export_to_xml
 	fi

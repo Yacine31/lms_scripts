@@ -8,8 +8,8 @@ Le script est appelé une fois pour créer les différentes tables dans la BDD
 USAGE
 
 # Inclusion des fonctions
-REP_COURANT="/root/lms_scripts"
-. ${REP_COURANT}/fonctions.sh
+#export SCRIPTS_DIR="/home/merlin/lms_scripts"
+. ${SCRIPTS_DIR}/fonctions.sh
 
 
 # si aucun paramètre en entrée on quitte
@@ -100,7 +100,7 @@ fnAddPrimaryKey $TABLE $KEY
 # creation de la table pour les données serveurs
 TABLE=$1"_cpu"
 HEADER="PHYSICAL_SERVER,Host_Name,OS,Marque,Model,Virtuel,Processor_Type,Socket,Cores_per_Socket,Total_Cores,"
-HEADER=$HEADER"Node_Name,Partition_Name,Partition_Number,Partition_Type,Partition_Mode,Entitled_Capacity,Active_CPUs_in_Pool,Online_Virtual_CPUs,Machine_Serial_Number,Active_Physical_CPUs"
+HEADER=$HEADER"Node_Name,Partition_Name,Partition_Number,Partition_Type,Partition_Mode,Entitled_Capacity,Active_CPUs_in_Pool,Shared_Pool_ID,Online_Virtual_CPUs,Machine_Serial_Number,Active_Physical_CPUs"
 fnCreateTable $TABLE $HEADER
 
 # ajout de la clé primaire sur cette table HOST_NAME
@@ -157,3 +157,11 @@ fnCreateTable $TABLE $HEADER
 # ajout de la clé primaire sur cette table 
 KEY=HOST_NAME,INSTANCE_NAME,Owner,Model_Name
 fnAddPrimaryKey $TABLE $KEY
+
+
+# creation de la table pour les données Advanced Compression
+TABLE=$1"_adv_compression"
+HEADER="GREPME,Host_Name,Instance_Name,Sysdate,Host_name_2,Db_Name,Advanced_Compression,Table_Compression,Count_Nbr,Count_Txt,dba_tables,"
+HEADER=$HEADER"table_Owner,table_name,partition_name,compression,compression_for"
+fnCreateTable $TABLE $HEADER
+

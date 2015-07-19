@@ -1,15 +1,35 @@
 #!/bin/bash 
 
 # Inclusion des fonctions
-REP_COURANT="/root/lms_scripts"
-. ${REP_COURANT}/fonctions.sh
-. ${REP_COURANT}/fonctions_xml.sh
+#export SCRIPTS_DIR="/home/merlin/lms_scripts"
+. ${SCRIPTS_DIR}/fonctions.sh
+. ${SCRIPTS_DIR}/fonctions_xml.sh
 
 
 #--------------------------------------------------------------------------------#
 # Option RAC 
 #--------------------------------------------------------------------------------#
 DEBUG=0
+
+#--- vérifier si les script ont été exécutés sur toutes les bases et tous les serveurs:
+
+SQL="select distinct node_name from $tRAC where node_name not in (select host_name from $tCPU);"
+RESULT=$(mysql -u${MYSQL_USER} -p${MYSQL_PWD} --database=${MYSQL_DB} -e "$SQL")
+if [ "$RESULT" != "" ]; then
+	echo $RED
+	echo " ===> Le script lms_cpu n'a pas été exécuté sur les serveurs suivants :"
+	echo $NOCOLOR
+	mysql -u${MYSQL_USER} -p${MYSQL_PWD} --database=${MYSQL_DB} -e "$SQL"
+fi
+#---- vérifier si le script sql a été exécuté sur toutes les instances :
+SQL="select distinct node_name, rac_instance from $tRAC where rac_instance not in (select instance_name from $tVersion) order by 1,2;"
+RESULT=$(mysql -u${MYSQL_USER} -p${MYSQL_PWD} --database=${MYSQL_DB} -e "$SQL")
+if [ "$RESULT" != "" ]; then
+	echo $RED
+	echo " ===> Le script reviewlite n'a pas été exécuté sur les instances suivantes :"
+	echo $NOCOLOR
+	mysql -u${MYSQL_USER} -p${MYSQL_PWD} --database=${MYSQL_DB} -e "$SQL"
+fi
 
 #--- tous les serveurs et tous les OS :
 
@@ -25,18 +45,22 @@ c.Model,
 c.OS,
 c.Processor_Type"
 
-export FROM="$tCPU c left join $tRAC r left join $tVersion v on r.node_name=v.host_name on c.host_name=r.node_name"
+# export FROM="$tCPU c left join $tRAC r left join $tVersion v on r.node_name=v.host_name on c.host_name=r.node_name"
+export FROM="$tRAC r left join $tCPU c left join $tVersion v on c.host_name=v.host_name on r.node_name=c.host_name"
 export WHERE="r.nodes_count > 1"
-export ORDERBY="c.physical_server, r.database_name, r.node_name, r.rac_instance"
+# export ORDERBY="c.physical_server, r.database_name, r.node_name, r.rac_instance"
+export ORDERBY="r.database_name, r.node_name, r.rac_instance"
 
 export SQL="select $SELECT from $FROM where $WHERE order by $ORDERBY;"
 
 RESULT=$(mysql -u${MYSQL_USER} -p${MYSQL_PWD} --database=${MYSQL_DB} -e "$SQL")
 if [ "$RESULT" != "" ]; then
+	echo $YELLOW
 	echo "#--------------------------------------------------------------------------------#"
 	echo "# Option RAC "
 	echo "#--------------------------------------------------------------------------------#"
-	echo "Les serveurs avec option RAC en Enterprise Edition"
+	echo "Les serveurs avec option RAC en $RED Enterprise Edition"
+	echo $NOCOLOR
 
 	if [ "$DEBUG" == "1" ]; then echo "[DEBUG] - $SQL"; fi
 	mysql -u${MYSQL_USER} -p${MYSQL_PWD} --local-infile --database=${MYSQL_DB} -e "$SQL"
@@ -57,25 +81,32 @@ if [ "$RESULT" != "" ]; then
 	# export des données
 	export_to_xml
 
-	#--------- Calcul des processeurs : OS != AIX
-	export SELECT_NON_AIX="distinct c.physical_server, c.OS, c.Processor_Type, c.Socket, c.Cores_per_Socket, c.Total_Cores, '' as Core_Factor, '' as Proc_Oracle"
+        #-------------------------------------------------------------------------------
+        #--------- Calcul des processeurs : OS != AIX
+        #-------------------------------------------------------------------------------
+
+	export SELECT_NON_AIX="distinct c.physical_server, c.OS, c.Processor_Type, c.Socket, c.Cores_per_Socket, c.Total_Cores, Core_Factor, Total_Cores*Core_Factor as Proc_Oracle"
 	export FROM="$tCPU c left join $tRAC r left join $tVersion v on r.node_name=v.host_name on c.host_name=r.node_name"
 	export WHERE="r.nodes_count > 1 and c.os not like '%AIX%'"
 	export ORDERBY="c.physical_server"
 
-	SQL="select $SELECT from $FROM where $WHERE order by $ORDERBY;"
+        SQL="select $SELECT_NON_AIX from $FROM where $WHERE order by $ORDERBY"
+        if [ "$DEBUG" == "1" ]; then echo "[DEBUG - $0 ] - $SQL"; fi
+
 
 	RESULT=$(mysql -u${MYSQL_USER} -p${MYSQL_PWD} --database=${MYSQL_DB} -e "$SQL")
 	if [ "$RESULT" != "" ]; then
 		# affichage du tableau pour le calcul du nombre de processeur
-		print_proc_oracle $SELECT_NON_AIX'|'$FROM'|'$WHERE
+		# print_proc_oracle $SELECT_NON_AIX'|'$FROM'|'$WHERE
 
 		# export des données
 		export_to_xml
 	fi
 
+        #-------------------------------------------------------------------------------
+        #--------- Calcul des processeurs : OS == AIX
+        #-------------------------------------------------------------------------------
 
-	# ---- Les serveurs OS == 'AIX' :
 	export SELECT="distinct 
 	b.physical_server 'Physical Server',
 	b.Host_Name 'Host Name',

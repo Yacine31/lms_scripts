@@ -14,6 +14,7 @@
 # 16/01/2015 - get_processor_type corrigée pour les machine SunOS
 # 24/01/2015 - windows : calcul des sockets et coeurs corrigé 
 # 26/01/2015 - Ajout de Model et calcul des procs disponibles/actifs sur SunOS
+# 03/04/2015 - Distinction entre la virtualisation Hyper-V et VMware
  
 
 :<<README
@@ -49,6 +50,7 @@ function print_header {
 	Partition Mode;\
 	Entitled Capacity;\
 	Active CPUs in Pool;\
+	Shared Pool ID;\
 	Online Virtual CPUs;\
 	Machine Serial Number;\
 	Active Physical CPUs" >> $OUTPUT_FILE
@@ -73,6 +75,7 @@ function init_variables {
 	Partition_Mode=""
 	Entitled_Capacity=""
 	Active_CPUs_in_Pool=""
+	Shared_Pool_ID=""
 	Online_Virtual_CPUs=""
 	Machine_Serial_Number=""
 	Active_Physical_CPUs=""
@@ -104,10 +107,11 @@ function get_os {
 	if [ ! "$OS" ]; then
 		OS=`cat "$@" | grep "^Operating System" -A1 | grep "Caption: " | tr -s ' ' | sed 's/ Caption: //' | sed 's/\\r//'`
 	fi
-	
-	# quelque soit l'OS on prend juste le premier mot (Microsoft souvent suivi de plusieurs informations
-	# OS=$(echo $OS | cut -d' ' -f1)
 
+        # Pour windows on garde juste l'essentiel
+        if [[ $(echo $OS | egrep -i 'Microsoft|Windows') ]]; then
+            OS="Microsoft"
+        fi
 }
 
 function get_marque {
@@ -116,7 +120,8 @@ function get_marque {
 	*Microsoft* )
 	    # windows 2003, 2008
 	    if [ ! "$MARQUE" ]; then
-		MARQUE=`cat "$@" | grep -i '^System' -A2 | grep -i 'Manufacturer:' | sed 's/  Manufacturer: //' | head -1`
+		# MARQUE=`cat "$@" | grep -i '^System' -A2 | grep -i 'Manufacturer:' | sed 's/  Manufacturer: //' | head -1`
+		MARQUE=`cat "$@" |  sed -n -e '/^System/,/EOF/p' | grep -i 'Manufacturer:' | sed 's/  Manufacturer: //' | tail -1`
 	    fi
 	;;
 
@@ -154,7 +159,8 @@ function get_modele {
 
 	    *Microsoft* )
 		# modele pour windows 2003
-		MODEL=`cat "$@" | grep -i '^System' -A3 | grep -i 'Model:' | sed 's/  Model: //' | head -1`
+		# MODEL=`cat "$@" | grep -i '^System' -A3 | grep -i 'Model:' | sed 's/  Model: //' | head -1`
+		MODEL=`cat "$@" |  sed -n -e '/^System/,/EOF/p' | grep -i 'Model:' | sed 's/  Model: //' | tail -1`
 		;;
 
 	    AIX )
@@ -402,6 +408,7 @@ function get_aix_params {
 		# Entitled_Capacity=`cat "$@" | grep /usr/bin/lparstat -A6 | tail -1 | cut -d':' -f2 | sed 's/^ *//g'| sed 's/\./,/g'`
 		Entitled_Capacity=`cat "$@" | grep /usr/bin/lparstat -A6 | tail -1 | cut -d':' -f2 | sed 's/^ *//g'`
 		Active_CPUs_in_Pool=`cat "$@" | grep /usr/bin/lparstat -A21 | tail -1 | cut -d':' -f2 | sed 's/^ *//g'`
+		Shared_Pool_ID=`cat "$@" | grep /usr/bin/lparstat -A8 | tail -1 | cut -d':' -f2 | sed 's/^ *//g'`
 		Online_Virtual_CPUs=`cat "$@" | grep /usr/bin/lparstat -A9 | tail -1 | cut -d':' -f2 | sed 's/^ *//g'`
 		Machine_Serial_Number=`cat "$@" | grep /usr/sbin/prtconf -A2 | tail -1 | cut -d':' -f2 | sed 's/^ *//g'`
 		# pour certains serveur Lorsque Serial Number retourne "Not Available", il manque un retour chariot
@@ -440,6 +447,7 @@ function print_data {
 	$Partition_Mode;\
 	$Entitled_Capacity;\
 	$Active_CPUs_in_Pool;\
+	$Shared_Pool_ID;\
 	$Online_Virtual_CPUs;\
 	$Machine_Serial_Number;\
 	$Active_Physical_CPUs" >> $OUTPUT_FILE
@@ -464,12 +472,21 @@ function get_virtuel {
 			;;
 		* )
 			#---
-			# pour la virtualisation VMware, on regarde la marque 
+			# pour la virtualisation VMware, on regarde le modèle 
+			#   VMware = VMware Virtual Platform, Hyper-V = Virtual Machine 
 			#---
-			v_VMWARE=$(echo $MARQUE | grep -i vmware)
-			if [[ "$v_VMWARE" != "" ]]; then
-				VIRTUEL="TRUE"
-				PHYSICAL_SERVER="VMWARE"
+			strV=$(echo $MODEL | grep -i "virtual")
+			if [[ "$strV" != "" ]]; then 
+			    VIRTUEL="TRUE"
+
+			    case $MARQUE in
+				*Microsoft* )
+				    PHYSICAL_SERVER="Hyper-V"
+				;;
+				*VMware* )
+				    PHYSICAL_SERVER="VMWARE"
+				;;
+			    esac
 			fi
 			;;
 	esac
@@ -519,7 +536,6 @@ sed -i "s/\\r//g" $OUTPUT_FILE
 
 echo
 echo "Fin du traitement des fichiers XXXXX-lms_cpuq"
-echo "Fichier de sortie $OUTPUT_FILE"
 echo 
 
-# cat $OUTPUT_FILE
+# rm -fv $OUTPUT_FILE
