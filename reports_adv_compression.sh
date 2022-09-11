@@ -1,4 +1,6 @@
 #!/bin/bash
+### 30/10/2018 #  exit
+exit
 
 # Inclusion des fonctions
 #export SCRIPTS_DIR="/home/merlin/lms_scripts"
@@ -54,7 +56,7 @@ if [ "$RESULT" != "" ]; then
     print_to_xml "Option Advanced Compression : Standard Edition"
     print_to_xml "ATTENTION : les bases suivantes sont en Standard Edition et utilisent Advanced Compression"
     print_to_xml "les informations suivantes viennent de la vue dba_feature_usage_statistics"
-    export_to_xml
+    ### 30/10/2018 #  # export_to_xml
 
     # list des objets pour vérifier si ce n'est pas SYSMAN qui utilise l'option
     SQL="select Host_Name, Instance_Name, table_name, table_Owner, compression, compression_for from $tAdvCompression order by 1, 2, 3;"
@@ -65,12 +67,12 @@ if [ "$RESULT" != "" ]; then
     echo $NOCOLOR
     echo ""
  
-    mysql -u${MYSQL_USER} -p${MYSQL_PWD} --database=${MYSQL_DB} -e "$SQL"
+    ### 30/10/2018 #  mysql -u${MYSQL_USER} -p${MYSQL_PWD} --database=${MYSQL_DB} -e "$SQL"
     echo
 
     # export des données
     print_to_xml "Standard Edition - SecureFiles(user): list des objets pour vérifier si ce n'est pas SYSMAN qui utilise l'option"
-    export_to_xml
+    ### 30/10/2018 #  # export_to_xml
     # fermeture de la feuille
     close_xml_sheet
 fi
@@ -117,7 +119,27 @@ if [ "$RESULT" != "" ]; then
     print_to_xml "Liste des bases qui utilisent Advanced Compression et qui sont en Enterprise Edition"
     print_to_xml "Option Advanced Compression : Enterprise Edition"
     print_to_xml "les informations suivantes viennent de la vue dba_feature_usage_statistics"
+    # export des données
+    ### 30/10/2018 #  export_to_xml
 
+
+    # si Compression avec Datapump, on affiche les lignes concernées pour vérification
+    sql="select * from $tDbaFeatures where name like '%Datapump%'"
+    DP_RESULT=$(mysql -u${MYSQL_USER} -p${MYSQL_PWD} --database=${MYSQL_DB} -e "$SQL")
+    if [ "${DP_RESULT}" != "" ]; then
+        echo ""
+        echo $YELLOW
+        echo "#-------------------------------------------------------------------------------"
+        echo "# Datapump utilise la compression comme indiqué dans le tableau plus haut       "
+        echo "# Vérifier dans les lignes suivantes si \"compression used:\" est supérieur à 0 "
+        echo "#-------------------------------------------------------------------------------"
+        echo $NOCOLOR
+        echo ""
+        find -type f -iname "*_options.csv" | while read f; do 
+            cat "$f" | grep ",DBA_FEATURE_USAGE_STATISTICS," | grep "Oracle Utility Datapump (Export) invoked:" | grep BASIC | egrep -o '^.*times\),' | cut -d, -f2,3,11-
+        done
+        echo ""
+    fi
     # list des objets pour vérifier si ce n'est pas SYSMAN qui utilise l'option
     SQL="select Host_Name, Instance_Name, table_name, table_Owner, compression, compression_for from $tAdvCompression order by 1, 2, 3;"
 
@@ -127,13 +149,13 @@ if [ "$RESULT" != "" ]; then
     echo $NOCOLOR
     echo ""
 
-    mysql -u${MYSQL_USER} -p${MYSQL_PWD} --database=${MYSQL_DB} -e "$SQL"
+    ### 30/10/2018 #  mysql -u${MYSQL_USER} -p${MYSQL_PWD} --database=${MYSQL_DB} -e "$SQL"
     echo
 
     # export des données
     print_to_xml "Enterprise Edition - SecureFiles(user): list des objets pour vérifier si ce n'est pas SYSMAN qui utilise l'option"
     # export des données
-    export_to_xml
+    ### 30/10/2018 #  export_to_xml
 
     #-------------------------------------------------------------------------------
     #--------- Calcul des processeurs : OS != AIX
@@ -171,7 +193,7 @@ if [ "$RESULT" != "" ]; then
 	# mysql -u${MYSQL_USER} -p${MYSQL_PWD} --database=${MYSQL_DB} -e "$SQL"
 
 	# export des données
-	export_to_xml
+	### 30/10/2018 #  export_to_xml
     fi
 
 
@@ -217,7 +239,7 @@ if [ "$RESULT" != "" ]; then
 	mysql -u${MYSQL_USER} -p${MYSQL_PWD} --database=${MYSQL_DB} -e "$SQL"
 
 	# export des données
-	export_to_xml
+	### 30/10/2018 #  export_to_xml
 
 	# calcul des processeurs par regroupement des serveurs physiques
 	print_proc_oracle_aix $SELECT'|'$FROM'|'$WHERE
@@ -251,5 +273,5 @@ if [ "$RESULT" != "" ]; then
     echo "Le compte SYSMAN ne doit pas être pris en compte, bug Oracle"
     echo "#-------------------------------------------------------------------------------"
     echo $NOCOLOR
-    mysql -u${MYSQL_USER} -p${MYSQL_PWD} --database=${MYSQL_DB} -e "$SQL"
+    ### 30/10/2018 #   mysql -u${MYSQL_USER} -p${MYSQL_PWD} --database=${MYSQL_DB} -e "$SQL"
 fi

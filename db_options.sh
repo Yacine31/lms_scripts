@@ -3,6 +3,8 @@
 20/05/2014 - insertion des données sur le partitioning dans la base MySQL
 22/05/2014 - insersion des données des fichiers versions.csv ds la base
 05/08/2014 - insertion des données RAC depuis les fichiers *_options.csv
+20/09/2017 - insertion des données Multitenant depuis les fichiers *_options.csv
+08/11/2017 - mise à jour de la détection de l'option spatial
 HISTORIQUE
 
 # si aucun paramètre en entrée on quitte
@@ -14,6 +16,34 @@ DELIM=","
 # Inclusion des fonctions
 # SCRIPTS_DIR=$HOME/lms_scripts
 . ${SCRIPTS_DIR}/fonctions.sh
+
+
+function fnMultitenant {
+    # recherche dans les fichiers options.csv des lignes qui commencent par GREPME et contiennent V$CONTAINERS
+    # à partir de ces lignes on va extraire seulement certains champs
+    # exemple des lignes dans le fichier csv
+    # GREPME>>,lbdddwhd1.m6,DIVD1,2017-09-14_11:10:18,lbdddwhd1.m6,DIVD1,MULTITENANT,V$CONTAINERS,1,count,NO,0,"DIVD1",READ WRITE,2017-08-09_09:56:17_+02:00,entire CDB or non-CDB,
+    # exemple avec les champs retenus :
+    # lbdddwhd1.m6,DIVD1,1,NO,0,"DIVD1",READ WRITE,2017-08-09_09:56:17_+02:00,entire CDB or non-CDB,
+
+    SRCFILE="*options.csv"
+    TABLE=$1"_multitenant"
+    TMPFILE="/tmp/multitenant.csv"
+
+    # ensuite on parcourt les fichiers XXX_YYY_options.csv pour les insérer dans la table
+    rm -f $TMPFILE 2>/dev/null
+    echo -n "Insertion des données Multitenant à partir des fichiers XXX_YYY_options.csv dans la table $TABLE : "
+    find -type f -iname "$SRCFILE" | while read f
+    do
+        echo -n "."
+        cat "$f" | grep "^GREPME" | grep ",V\$CONTAINERS," | cut -d',' -f2,3,9,11- >> $TMPFILE
+    done
+    echo ""
+
+    mysql -u${MYSQL_USER} -p${MYSQL_PWD} --local-infile --database=${MYSQL_DB} -e "
+    load data local infile '$TMPFILE' into table $TABLE fields terminated by '$DELIM';"
+    # rm -f $TMPFILE
+} # function fnMultitenant
 
 
 function fnSqlProfiles {
@@ -170,12 +200,14 @@ function fnSpatial {
 	TABLE=$1"_spatial"
 	TMPFILE="/tmp/spatial.csv"
 
-	echo -n "Insertion des données Spatial/Locator depuis les fichiers XXX_YYY_options.csv vers la table $TABLE : "
+	echo -n "Insertion des données Spatial depuis les fichiers XXX_YYY_options.csv vers la table $TABLE : "
 	rm -f $TMPFILE 2>/dev/null
 	find -type f -iname "$SRCFILE" | while read f
 	do 
 		echo -n "."
-		cat "$f" | grep '^GREPME' | grep ',SPATIAL,' | egrep -v '0$|-942$'  >> $TMPFILE
+		# cat "$f" | grep '^GREPME' | grep ',SPATIAL,' | egrep -v '0$|-942$'  >> $TMPFILE
+        # changement de la commande grep pour garder uniquement les lignes avec le count qui est une donnée pertinente.
+		cat "$f" | grep '^GREPME' | grep ',SPATIAL,ALL_SDO_GEOM_METADATA,'  >> $TMPFILE
 	done
 	echo ""
 
@@ -280,3 +312,5 @@ fnSqlProfiles $1
 fnOlap $1
 fnSpatial $1
 fnRegistry $1
+fnMultitenant $1
+

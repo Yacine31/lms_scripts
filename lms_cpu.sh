@@ -15,7 +15,9 @@
 # 24/01/2015 - windows : calcul des sockets et coeurs corrigé 
 # 26/01/2015 - Ajout de Model et calcul des procs disponibles/actifs sur SunOS
 # 03/04/2015 - Distinction entre la virtualisation Hyper-V et VMware
- 
+# 01/12/2016 - modification du comptage des sockets  et des coeurs sous Linux a cause de certains serveurs HP
+# 16/12/2016 - ajout de Xen dans les types de virtualisation (en plus de VMware et Hyper-V
+
 
 :<<README
 Postulat de depart :
@@ -23,6 +25,9 @@ Postulat de depart :
   + tous les fichiers sont dans le même répertoire et portent le nom XXXXX-lms_cpuq.txt
 - le script suivant va parcourir tous les fichier générer un fichier csv
 README
+
+. ${SCRIPTS_DIR}/fonctions.sh
+. ${SCRIPTS_DIR}/fonctions_xml.sh
 
 # DATE_JOUR=`date +%Y.%m.%d-%H.%M.%S`
 # OUTPUT_FILE="cpuq_"${DATE_JOUR}".csv"
@@ -92,27 +97,45 @@ function get_hostname {
 }
 
 function get_os {
-	# cette ligne marche pour les Unix et Linux, SunOS, AIX
-	OS=`cat "$@" | grep '^Operating System Name' | sort | uniq | cut -d'=' -f2 `
+    # cette ligne marche pour les Unix et Linux, SunOS, AIX
+    OS=`strings --encoding=S "$@" | grep '^Operating System Name' | sort | uniq | cut -d'=' -f2 `
 
-	# pour les Unix/SunOS on récupère aussi la release
-	RELEASE=`cat "$@" | grep "^Operating System Release=" | sort | uniq | cut -d'=' -f2`
-	
-	# si la chaine de caractère est vide, alors on cherche un Windows francais 2008
-	if [ ! "$OS" ]; then
-		OS=`cat "$@" | grep "d'exploitation" | cut -d' ' -f3-`
-	fi
+    # pour les Unix/SunOS on récupère aussi la release
+    RELEASE=`strings --encoding=S "$@" | grep "^Operating System Release=" | sort | uniq | cut -d'=' -f2`
 
-	# sinon c 'est un windows anglais 
-	if [ ! "$OS" ]; then
-		OS=`cat "$@" | grep "^Operating System" -A1 | grep "Caption: " | tr -s ' ' | sed 's/ Caption: //' | sed 's/\\r//'`
-	fi
+    # si la chaine de caractère est vide, alors on cherche un Windows francais 2008
+    if [ ! "$OS" ]; then
+        OS=`strings --encoding=S "$@" | grep "d'exploitation" | cut -d' ' -f3-`
+    fi
 
-        # Pour windows on garde juste l'essentiel
-        if [[ $(echo $OS | egrep -i 'Microsoft|Windows') ]]; then
-            OS="Microsoft"
+    # sinon c 'est un windows anglais
+    if [ ! "$OS" ]; then
+        OS=`strings --encoding=S "$@" | grep "^Operating System" -A1 | grep "Caption: " | tr -s ' ' | sed 's/ Caption: //' | sed 's/\\r//'`
+    fi
+
+
+    # ICI ON VA FAIRE DEUX CHOSES :
+    #   - simplifier l'affichage pour les OS Windows
+    #   - vérifier si c'est root qui a exécuté le script pour les OS Linux/Unix/AIX
+    #
+    # Pour windows on garde juste l'essentiel
+    if [[ $(echo $OS | egrep -i 'Microsoft|Windows') ]]; then
+        OS="Microsoft"
+        echo $YELLOW " : termine" $NOCOLOR
+    else
+        # si ce n'est pas Windows, on regarde si l'utilisateur qui a exécuté le script est root
+        # script_user=$(strings --encoding=S "$@" | grep '^Script Command user=' | sort | uniq | cut -d'=' -f2)
+        # strings --encoding=S remplacée par strings --encoding=S
+        script_user=$(strings --encoding=S "$@" | grep '^Script Command user=' | sort | uniq | cut -d'=' -f2)
+        if [[ $script_user != "ROOT" ]]; then
+            echo $RED " : le script a ete execute avec un compte different de ROOT" $NOCOLOR
+        else
+            echo $YELLOW " : termine" $NOCOLOR
         fi
+    fi
+
 }
+
 
 function get_marque {
 
@@ -296,7 +319,12 @@ function get_sockets_number {
 			# pour linux les infos sont dans le fichier après la commande dmidecode --type processor
 			# si ID est different de 00 00 00 00 00 00 alors le PROC existent bien et on le compte
 			# sur certaines machine IBM, il faut supprimer les lignes UUID:
-			NB_SOCKETS=`cat "$@" | grep "ID:" | grep -v UUID | grep -v "00 00 00 00 00 00 00 00" | wc -l`
+			# NB_SOCKETS=`cat "$@" | grep "ID:" | grep -v UUID | grep -v "00 00 00 00 00 00 00 00" | wc -l`
+
+            # 01/12/2016 : modification a cause de certains serveurs HP
+            # le sed permet de ne garder que les lignes qui font 9 mots, cela permet d'eliminer des entrees de type ID: 1
+			# NB_SOCKETS=`cat "$@" | grep -P "^[\t]+ID:" | grep -v "00 00 00 00 00 00 00 00" | sed -n '/.\{9\}/p' | wc -l`
+			NB_SOCKETS=`cat "$@" | grep  "^physical id" | sort -u | wc -l`
 		;;
 
 		* )
@@ -383,7 +411,7 @@ function get_core_number {
 		
 		Linux )
 			# pour linux les infos sont dans le fichier après la commande dmidecode --type processor
-			NB_COEURS=`cat "$@" | grep "^cpu cores" | sort | uniq | cut -d':' -f2 | egrep -o '[0-9]'`
+			NB_COEURS=`cat "$@" | grep "^cpu cores" | sort | uniq | cut -d':' -f2 | egrep -o '[0-9]*'`
 			if [[ "$NB_COEURS" && "$NB_SOCKETS" ]]
 			    then NB_COEURS_TOTAL=$(expr $NB_SOCKETS \* $NB_COEURS)
 			fi
@@ -475,7 +503,7 @@ function get_virtuel {
 			# pour la virtualisation VMware, on regarde le modèle 
 			#   VMware = VMware Virtual Platform, Hyper-V = Virtual Machine 
 			#---
-			strV=$(echo $MODEL | grep -i "virtual")
+			strV=$(echo $MODEL | egrep -i "virtual|domU")
 			if [[ "$strV" != "" ]]; then 
 			    VIRTUEL="TRUE"
 
@@ -485,6 +513,9 @@ function get_virtuel {
 				;;
 				*VMware* )
 				    PHYSICAL_SERVER="VMWARE"
+				;;
+				*Xen* )
+				    PHYSICAL_SERVER="Xen"
 				;;
 			    esac
 			fi
@@ -506,9 +537,10 @@ echo "Debut du traitement : fichier de sortie $OUTPUT_FILE"
 
 print_header
 
-find -type f -iname "*-lms_cpuq.txt" | while read f
+# find -type f -iname "*-lms_cpuq.txt" | while read f
+find -type f -iname "*-ct_cpuq.txt" | while read f
 do
-	echo "Traitement du fichier : $f"
+	echo -n "Traitement du fichier : $f"
 	dos2unix $f 2>/dev/null
 	init_variables
 	get_hostname "$f"
@@ -535,7 +567,7 @@ sed -i "s/\\r//g" $OUTPUT_FILE
 
 
 echo
-echo "Fin du traitement des fichiers XXXXX-lms_cpuq"
+echo "Fin du traitement des fichiers XXXXX-ct_cpuq"
 echo 
 
 # rm -fv $OUTPUT_FILE

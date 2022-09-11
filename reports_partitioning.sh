@@ -14,7 +14,7 @@ DEBUG=0
 #--------------------------------------------------------------------------------#
 #--- tous les serveurs et tous les OS :
 #--------------------------------------------------------------------------------#
-export SQL_NOT_IN="('SYS','SYSTEM','SYSMAN','MDSYS')"
+export SQL_NOT_IN="('SYS','SYSTEM','SYSMAN','MDSYS','AUDSYS')"
 
 export SQL="select distinct c.physical_server, a.host_name, a.instance_name, a.owner
 from $tSegments a left join $tCPU c on c.host_name=a.host_name
@@ -96,7 +96,8 @@ if [ "$RESULT" != "" ]; then
 		mysql -u${MYSQL_USER} -p${MYSQL_PWD} --database=${MYSQL_DB} -e "$SQL"
 
 		# export des données
-		export_to_xml
+		# fonction commentée à cause de DZE - trop d'objets partitionés 
+		## export_to_xml
 
 		print_proc_oracle_aix $SELECT'|'$FROM'|'$WHERE
 	fi

@@ -33,7 +33,8 @@ if [ "$RESULT" != "" ]; then
 	# ouverture d'une feuille Excel
 	open_xml_sheet
 	# export des données
-	export_to_xml
+	## désactivé le 30/10/2018 à cause de SPIE DZE
+	## export_to_xml
 	# fermeture de la feuille
 	close_xml_sheet
 fi
@@ -61,7 +62,8 @@ if [ "$RESULT" != "" ]; then
 	export SHEET_NAME=AdvSec_EE
 	# ouverture d'une feuille Excel
 	open_xml_sheet	# export des données
-	export_to_xml
+	## désactivé le 30/10/2018 à cause de SPIE DZE
+	## export_to_xml
 	#-------------------------------------------------------------------------------
 	#--------- Calcul des processeurs : OS != AIX
 	#-------------------------------------------------------------------------------
@@ -84,7 +86,8 @@ if [ "$RESULT" != "" ]; then
                 print_proc_oracle $SELECT_NON_AIX'|'$FROM'|'$WHERE
 
 		# export des données
-		export_to_xml
+		## désactivé le 30/10/2018 à cause de SPIE DZE
+		## export_to_xml
 	fi
 
 	#-------------------------------------------------------------------------------
@@ -119,7 +122,8 @@ if [ "$RESULT" != "" ]; then
 		mysql -u${MYSQL_USER} -p${MYSQL_PWD} --local-infile --database=${MYSQL_DB} -e "$SQL"
 
 		# export des données
-		export_to_xml
+		## désactivé le 30/10/2018 à cause de SPIE DZE
+		## export_to_xml
 
 		# calcul des processeurs par regroupement des serveurs physiques
 		print_proc_oracle_aix $SELECT'|'$FROM'|'$WHERE

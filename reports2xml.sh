@@ -10,6 +10,8 @@
 #            - le détails est disponible à le demande via le script reports_detail.sh
 # 04/08/2014 - ajout du calcul des processeurs pour les serveurs AIX
 # 10/08/2014 - export vers XML au format Excel
+# 12/12/2016 - ajout de fonctionnalitées Tuning Pack
+
 
 # MYSQL_ARGS="--defaults-file=/etc/mysql/debian.cnf"
 
@@ -39,6 +41,8 @@ export tSpatial=$PROJECT_NAME"_spatial"    # table avec les données SPATIAL/LOC
 export tVoption=$PROJECT_NAME"_v_option"    # table avec les paramètres v_option
 export tDataMining=$PROJECT_NAME"_data_mining"    # table avec les paramètres v_option
 export tAdvCompression=$PROJECT_NAME"_adv_compression"    # advanced compression
+export tMultitenant=$PROJECT_NAME"_multitenant"    # option multitenant en 12c
+
 
 
 #--------------------------------------------------------------------------------#
@@ -102,10 +106,21 @@ echo $YELLOW"Statistiques des serveurs et OS :"$NOCOLOR
 export SQL="select OS, count(*) 'Nombre de serveurs' from $tCPU group by os union select '--- Total des serveurs ---', count(*) from $tCPU;"
 mysql -u${MYSQL_USER} -p${MYSQL_PWD} --database=${MYSQL_DB} -e "$SQL" 
 
+#--------------------------------------------------------------------------------#
+# ouverture d'une feuille Excel pour mettre les infos des serveurs
+#--------------------------------------------------------------------------------#
+
+# ouverture d'une feuille Excel
+export SHEET_NAME=Serveurs
+open_xml_sheet
+
 echo $YELLOW"Les bases et les versions :"$NOCOLOR
 export SQL="select banner 'Version', count(*) 'Nombre de bases' from $tVersion group by banner 
 union select '--- Total des bases ---', count(*) from $tVersion;"
 mysql -u${MYSQL_USER} -p${MYSQL_PWD} --database=${MYSQL_DB} -e "$SQL" 
+
+# export des données 
+# export_to_xml 
 
 echo $YELLOW"Les bases par editions : "$NOCOLOR
 
@@ -118,11 +133,9 @@ select '----------------------------------' from dual;
 "
 mysql -ss -u${MYSQL_USER} -p${MYSQL_PWD} --local-infile --database=${MYSQL_DB} -e "$SQL" 
 
-# ouverture d'une feuille Excel
-export SHEET_NAME=Infos
-open_xml_sheet
 # export des données 
-export_to_xml 
+# export_to_xml 
+
 
 # ici on liste les serveurs qui n'ont pas de base de données associées : oubli de passage des scripts ou serveurs qui n'héberge pas de base Oracle
 export SQL="select Host_Name, os, Marque, Model, Processor_Type 
@@ -135,6 +148,7 @@ if [ "$RESULT" != "" ]; then
     mysql -u${MYSQL_USER} -p${MYSQL_PWD} --local-infile --database=${MYSQL_DB} -e "$SQL" 
 
     # export des données 
+    print_to_xml "Les serveurs sans base de données :"
     export_to_xml 
 fi
 
@@ -148,17 +162,36 @@ if [ "$RESULT" != "" ]; then
     mysql -u${MYSQL_USER} -p${MYSQL_PWD} --local-infile --database=${MYSQL_DB} -e "$SQL" 
 
     # export des données 
+    print_to_xml "Les serveur sans le résultat de lms_cpuq.sh : "
     export_to_xml 
 fi
 
 # fermeture de la feuille
+# close_xml_sheet
+
+# seulement les serveurs non AIX en premier :
+SQL="select PHYSICAL_SERVER, Host_Name, OS, Marque, Model, Processor_Type, Socket, Cores_per_Socket, Total_Cores from $tCPU where os not like '%AIX%' order by PHYSICAL_SERVER, Host_Name;"
+# export des données 
+print_to_xml "Caractéristiques des serveurs Windows et Linux : "
+print_to_xml "Vérifiez si les informations sont correctes avant de poursuivre :"
+print_to_xml "Les cases en rouge, vides ou avec une valeur ZERO indiquent des informations incomplètes ... à valider avec le client"
+print_to_xml "Si le serveur physique est VMWARE, demandez aux client les captures VMWare ou un extrait avec les RVTools"
+export_to_xml
+print_to_xml
+# ensuite les serveur AIX avec tous les paramètres
+SQL="select PHYSICAL_SERVER, Host_Name, OS, Marque, Model, Virtuel, Processor_Type, Socket, Partition_Type, Partition_Mode, Entitled_Capacity, Active_CPUs_in_Pool, Shared_Pool_ID, Online_Virtual_CPUs, Machine_Serial_Number, Active_Physical_CPUs, Core_Count, Core_Factor, CPU_Oracle from $tCPU where os like '%AIX%' order by PHYSICAL_SERVER, Host_Name;"
+# export des données 
+print_to_xml "Caractéristiques des serveurs AIX : "
+export_to_xml 
+# fermeture de la feuille
 close_xml_sheet
+
 
 #--------------------------------------------------------------------------------#
 # Base de données en Standard Edition
 #--------------------------------------------------------------------------------#
 
-export SELECT=" distinct c.physical_server, v.Host_Name, v.instance_name, c.os, c.Marque, c.Model, v.banner"
+export SELECT=" distinct c.physical_server, v.Host_Name, v.instance_name, c.os, c.Marque, c.Model, v.banner 'Edition'"
 export FROM="$tVersion v left join $tCPU c on c.Host_Name=v.Host_Name"
 export WHERE=" v.banner like '%Oracle%' and v.banner not like '%Enterprise%' and v.banner not like '%Personal%' and v.banner not like '%Express%'"
 export ORDERBY=" c.physical_server, c.Host_Name, v.instance_name, c.os "
@@ -186,6 +219,7 @@ if [ "$RESULT" != "" ]; then
     # ouverture d'une feuille Excel
     open_xml_sheet
     # export des données 
+    print_to_xml "Liste des bases de données en Standard Edition :"
     export_to_xml 
     # la feuille reste ouverte pour y ajouter le calcul
     # la fonction close sera appelée plus tard
@@ -210,6 +244,7 @@ if [ "$RESULT" != "" ]; then
 
     #--------- insertion des données de la requête dans le fichier XML
     # feuille déjà ouverte on ajoute le tableau de calcul des sockets
+    print_to_xml "Regroupement par serveur physique pour le calcul des processeurs :"
     export_to_xml
     # fermeture de la feuille
     close_xml_sheet
@@ -220,7 +255,7 @@ fi
 #--------------------------------------------------------------------------------#
 
 #--------- liste des serveurs avec une instance en EE
-export SELECT_EE="distinct c.physical_server, v.Host_Name, v.instance_name, c.OS, c.Processor_Type, v.banner "
+export SELECT_EE="distinct c.physical_server, v.Host_Name, v.instance_name, c.OS, c.Processor_Type, v.banner 'Edition' "
 export FROM="$tVersion v left join $tCPU c on v.HOST_NAME=c.Host_Name "
 export WHERE="v.banner like '%Enterprise%' and v.banner not like '%Personal%' and v.banner not like '%Express%' "
 export ORDERBY="c.physical_server, c.Host_Name, v.instance_name "
@@ -243,6 +278,7 @@ if [ "$RESULT" != "" ]; then
     export SHEET_NAME=EE
     # ouverture d'une feuille Excel
     open_xml_sheet
+    print_to_xml "Liste des bases de données en Enterprise Edition :"
     # export des données
     export_to_xml
 
@@ -255,9 +291,10 @@ if [ "$RESULT" != "" ]; then
     RESULT=$(mysql -u${MYSQL_USER} -p${MYSQL_PWD} --database=${MYSQL_DB} -e "$SQL")
     if [ "$RESULT" != "" ]; then
         # affichage du tableau pour le calcul du nombre de processeur
-        # print_proc_oracle $SELECT_NON_AIX'|'$FROM'|'$WHERE
+        print_proc_oracle $SELECT_NON_AIX'|'$FROM'|'$WHERE
         
         # export des données
+        print_to_xml "Regroupement par serveur physique pour le calcul des processeurs :"
         export_to_xml
 
         if [ "$DEBUG" == "1" ]; then echo "[DEBUG] - $SQL"; fi
@@ -278,6 +315,7 @@ if [ "$RESULT" != "" ]; then
         mysql -u${MYSQL_USER} -p${MYSQL_PWD} --local-infile --database=${MYSQL_DB} -e "$SQL" 
 
         # export des données
+        print_to_xml "Regroupement par serveur physique pour le calcul des processeurs AIX :"
         export_to_xml
 
         print_proc_oracle_aix $SELECT_EE_AIX'|'$FROM'|'$WHERE
@@ -289,6 +327,12 @@ if [ "$RESULT" != "" ]; then
     # fermeture de la feuille
     close_xml_sheet
 fi
+
+#--------------------------------------------------------------------------------#
+# Option multitenant
+#--------------------------------------------------------------------------------#
+
+# reports_multitenant.sh $PROJECT_NAME
 
 #--------------------------------------------------------------------------------#
 # Option RAC 
@@ -335,9 +379,21 @@ reports_active_dg.sh $PROJECT_NAME
 # Option Tuning Pack
 #-------------------------------------------------------------------------------
 
-export TUNING_PACK_FEATURES="'SQL Access Advisor','SQL Monitoring and Tuning pages','SQL Performance Analyzer','SQL Profile'"
-export TUNING_PACK_FEATURES=$TUNING_PACK_FEATURES",'SQL Tuning Advisor','SQL Tuning Set','SQL Tuning Set (user)','Tuning Pack'"
-export TUNING_PACK_FEATURES=$TUNING_PACK_FEATURES",'Real-Time SQL Monitoring'"
+# export TUNING_PACK_FEATURES="'SQL Access Advisor','SQL Monitoring and Tuning pages','SQL Performance Analyzer','SQL Profile'"
+# export TUNING_PACK_FEATURES=$TUNING_PACK_FEATURES",'SQL Tuning Advisor','SQL Tuning Set','SQL Tuning Set (user)','Tuning Pack'"
+# export TUNING_PACK_FEATURES=$TUNING_PACK_FEATURES",'Real-Time SQL Monitoring','Automatic Maintenance - SQL Tuning Advisor'"
+
+export TUNING_PACK_FEATURES="\
+'Automatic Maintenance - SQL Tuning Advisor',\
+'Real-Time SQL Monitoring',\
+'SQL Access Advisor',\
+'SQL Monitoring and Tuning pages',\
+'SQL Performance Analyzer',\
+'SQL Profile',\
+'SQL Tuning Advisor',\
+'SQL Tuning Set (user)',\
+'SQL Tuning Set',\
+'Tuning Pack'"
 
 reports_tuning.sh $PROJECT_NAME
 
@@ -346,9 +402,22 @@ reports_tuning.sh $PROJECT_NAME
 # Option Diagnostics Pack
 #-------------------------------------------------------------------------------
 
-export DIAG_PACK_FEATURES="'ADDM','Automatic Database Diagnostic Monitor'"
-export DIAG_PACK_FEATURES=$DIAG_PACK_FEATURES",'Automatic Workload Repository','AWR Baseline','AWR Report','Active Session History'"
-export DIAG_PACK_FEATURES=$DIAG_PACK_FEATURES",'Diagnostic Pack','EM Performance Page','Active Session History','EM Notification'"
+# export DIAG_PACK_FEATURES="'ADDM','Automatic Database Diagnostic Monitor'"
+# export DIAG_PACK_FEATURES=$DIAG_PACK_FEATURES",'Automatic Workload Repository','AWR Baseline','AWR Report','Active Session History'"
+# export DIAG_PACK_FEATURES=$DIAG_PACK_FEATURES",'Diagnostic Pack','EM Performance Page','Active Session History','EM Notification'"
+
+export DIAG_PACK_FEATURES="\
+'Active Session History',\
+'ADDM',\
+'Automatic Database Diagnostic Monitor',\
+'Automatic Workload Repository',\
+'AWR Baseline',\
+'AWR Report',\
+'Diagnostic Pack',\
+'EM Performance Page',\
+'EM Notification',\
+'Baseline Adaptive Thresholds',\
+'Baseline Static Computations'"
 
 reports_diagnostics.sh $PROJECT_NAME
 
@@ -358,7 +427,14 @@ reports_diagnostics.sh $PROJECT_NAME
 #	- SecureFile Deduplication (user)
 #	- SecureFile Compression (user)
 #-------------------------------------------------------------------------------
-export ADV_COMP_FEATURES="'SecureFiles (user)','SecureFile Deduplication (user)','SecureFile Compression (user)','Backup BZIP2 Compression','Oracle Utility Datapump (Export)'"
+# export ADV_COMP_FEATURES="'SecureFiles (user)','SecureFile Deduplication (user)','SecureFile Compression (user)','Backup BZIP2 Compression','Oracle Utility Datapump (Export)'"
+
+export ADV_COMP_FEATURES="\
+'Backup BZIP2 Compression',\
+'Oracle Utility Datapump (Export)',\
+'SecureFile Compression (user)',\
+'SecureFile Deduplication (user)',\
+'SecureFiles (user)'"
 
 reports_adv_compression.sh $PROJECT_NAME
 

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -x
 # le script va organiser la récupération des informations
 # la creation des tables, la creation d'une synthse et la generation d'un rapport
 

@@ -22,7 +22,7 @@ export NOCOLOR=$(tput sgr 0)
 # Les constantes 
 #--------------------------------------------------------------------------------#
 
-MYSQL_DB="test"
+MYSQL_DB="audit"
 MYSQL_USER="root"
 MYSQL_PWD="root"
 
@@ -190,42 +190,47 @@ update $tCPU set core_factor = case
     when upper(processor_type) like '%AMD%' then 0.5
     when upper(processor_type) like '%INTEL%' then 0.5
 
-
-    when upper(processor_type) like '%ULTRASPARC-T1' then 0.5
-    when upper(processor_type) like '%ULTRASPARC-T2+' then 0.5
-    when upper(processor_type) like '%SPARC64-VII+' then 0.5
-    when upper(processor_type) like '%SPARC64-X' then 0.5
-    when upper(processor_type) like '%SPARC64-T4' then 0.5
-    when upper(processor_type) like '%SPARC64-T5' then 0.5
-    when upper(processor_type) like '%SPARC64-M5' then 0.5
-    when upper(processor_type) like '%SPARC64-M6' then 0.5
-    when upper(processor_type) like '%SPARC64-X+' then 0.5
     when upper(processor_type) like '%ITANIUM%93%' then 0.5
-    
+    when upper(processor_type) like '%SPARC%M5%' then 0.5
+    when upper(processor_type) like '%SPARC%M6%' then 0.5
+    when upper(processor_type) like '%SPARC%M7%' then 0.5
+    when upper(processor_type) like '%SPARC%M8%' then 0.5
+    when upper(processor_type) like '%SPARC%S7%' then 0.5
+    when upper(processor_type) like '%SPARC%T4%' then 0.5
+    when upper(processor_type) like '%SPARC%T5%' then 0.5
+    when upper(processor_type) like '%SPARC64%M5%' then 0.5
+    when upper(processor_type) like '%SPARC64%M6%' then 0.5
+    when upper(processor_type) like '%SPARC64%T4%' then 0.5
+    when upper(processor_type) like '%SPARC64%T5%' then 0.5
+    when upper(processor_type) like '%SPARC64%VII+%' then 0.5
+    when upper(processor_type) like '%SPARC64%X%' then 0.5
+    when upper(processor_type) like '%ULTRASPARC%T1%' then 0.5
+    when upper(processor_type) like '%ULTRASPARC%T2+%' then 0.5
+
     -- cas de SunOS virtualisé sur VMware
     when upper(processor_type) = 'x86' then 0.5
 
-    when upper(processor_type) like '%ULTRASPARC-T2' then 0.75
-    when upper(processor_type) like '%PA-RISC%' then 0.75
-    when upper(processor_type) like '%SPARC64-VI' then 0.75
-    when upper(processor_type) like '%SPARC64-VII' then 0.75
-    when upper(processor_type) like '%ULTRASPARC-III+' then 0.75
-    when upper(processor_type) like '%ULTRASPARC-IV' then 0.75
-    when upper(processor_type) like '%ULTRASPARC-IV+' then 0.75
-    when upper(processor_type) like '%ULTRASPARC-VI' then 0.75
-    when upper(processor_type) like '%ULTRASPARC-VII' then 0.75
-    when upper(processor_type) like '%POWER%5%' then 0.75
+    when upper(processor_type) like '%PA%RISC%' then 0.75
     when upper(processor_type) like '%POWER%4%' then 0.75
+    when upper(processor_type) like '%POWER%5%' then 0.75
+    when upper(processor_type) like '%SPARC64%VI%' then 0.75
+    when upper(processor_type) like '%SPARC64%VII%' then 0.75
+    when upper(processor_type) like '%ULTRASPARC%III+%' then 0.75
+    when upper(processor_type) like '%ULTRASPARC%IV%' then 0.75
+    when upper(processor_type) like '%ULTRASPARC%IV+%' then 0.75
+    when upper(processor_type) like '%ULTRASPARC%T2%' then 0.75
+    when upper(processor_type) like '%ULTRASPARC%VI%' then 0.75
+    when upper(processor_type) like '%ULTRASPARC%VII%' then 0.75
 
+    when upper(processor_type) like '%ITANIUM%95%' then 1
     when upper(processor_type) like '%POWER%6%' then 1 
     when upper(processor_type) like '%POWER%7%' then 1 
     when upper(processor_type) like '%POWER%8%' then 1
-    when upper(processor_type) like '%ITANIUM%95%' then 1
-    when upper(processor_type) like '%ULTRASPARC-IIi' then 1
-    when upper(processor_type) like '%ULTRASPARC-III' then 1
-    when upper(processor_type) like '%ULTRASPARC-IIIi' then 1
-    when upper(processor_type) like 'SPARC64-V' then 1
-    when upper(processor_type) like 'SPARC64-GP' then 1
+    when upper(processor_type) like '%ULTRASPARC%IIi%' then 1
+    when upper(processor_type) like '%ULTRASPARC%III%' then 1
+    when upper(processor_type) like '%ULTRASPARC%IIIi%' then 1
+    when upper(processor_type) like 'SPARC64%GP' then 1
+    when upper(processor_type) like 'SPARC64%V' then 1
 
     -- pour tous les autres, c est coef 1
     else 1

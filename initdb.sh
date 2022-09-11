@@ -1,6 +1,7 @@
 #!/bin/bash
 :<<HISTORIQUE
 23/05/2014 - première version
+08/11/2017 - modification de la structure de la table SPATIAL
 HISTORIQUE
 
 :<<USAGE
@@ -45,6 +46,14 @@ function fnAddPrimaryKey {
 	echo " terminé"
 
 }
+
+# création de la table multitenant
+TABLE=$1"_multitenant"
+HEADER="HOST_NAME,INSTANCE_NAME,COUNT,CDB,CON_ID,NAME,OPEN_MODE,OPEN_TIME,CONTAINER"
+fnCreateTable $TABLE $HEADER
+# ajout de la clé primaire sur cette table 
+KEY=HOST_NAME,INSTANCE_NAME,CON_ID
+fnAddPrimaryKey $TABLE $KEY
 
 # création de la table sqlprofiles
 TABLE=$1"_sqlprofiles"
@@ -126,10 +135,11 @@ fnAddPrimaryKey $TABLE $KEY
 
 # creation de la table pour les données Spatial
 TABLE=$1"_spatial"
-HEADER="GREPME,Host_Name,Instance_Name,Sysdate,Host_name_2,Instance_Name_2,Spatial,Metadata,Count_Nbr,Count_Txt,OWNER,name,geometry"
+#HEADER="GREPME,Host_Name,Instance_Name,Sysdate,Host_name_2,Instance_Name_2,Spatial,Metadata,Count_Nbr,Count_Txt,OWNER,name,geometry"
+HEADER="GREPME,Host_Name,Instance_Name,Sysdate,Host_name_2,Instance_Name_2,Spatial,Metadata,Count_Nbr,Count_Txt,SDO_OWNER,SDO_TABLE_NAME,SDO_COLUMN_NAME"
 fnCreateTable $TABLE $HEADER
 # ajout de la clé primaire sur cette table 
-KEY=HOST_NAME,INSTANCE_NAME,OWNER,NAME
+KEY=HOST_NAME,INSTANCE_NAME
 fnAddPrimaryKey $TABLE $KEY
 
 # creation de la table v_options
@@ -147,7 +157,10 @@ HEADER="GREPME,Host_Name,Instance_Name,Sysdate,Host_name_2,Instance_Name_2,DBA_R
 fnCreateTable $TABLE $HEADER
 # ajout de la clé primaire sur cette table 
 KEY=HOST_NAME,INSTANCE_NAME,COMP_NAME,VERSION
-fnAddPrimaryKey $TABLE $KEY
+# fnAddPrimaryKey $TABLE $KEY
+fnAddIndex $TABLE idxregistry "HOST_NAME,INSTANCE_NAME"
+fnAddIndex $TABLE idxregistryCompName "COMP_NAME"
+
 
 # creation de la table pour les données DATA MINING
 TABLE=$1"_data_mining"
@@ -155,8 +168,10 @@ HEADER="GREPME,Host_Name,Instance_Name,Sysdate,Host_name_2,Instance_Name_2,Data_
 HEADER=$HEADER"MINING_FUNCTION,ALGORITHM,CREATION_DATE,BUILD_DURATION,MODEL_SIZE"
 fnCreateTable $TABLE $HEADER
 # ajout de la clé primaire sur cette table 
-KEY=HOST_NAME,INSTANCE_NAME,Owner,Model_Name
-fnAddPrimaryKey $TABLE $KEY
+# KEY=HOST_NAME,INSTANCE_NAME,Owner,Model_Name
+# fnAddPrimaryKey $TABLE $KEY "HOST_NAME,INSTANCE_NAME,OWNER,MODEL_NAME"
+fnAddIndex $TABLE idxDataMining "HOST_NAME,INSTANCE_NAME"
+fnAddIndex $TABLE idxDataMiningOwner "OWNER,MODEL_NAME"
 
 
 # creation de la table pour les données Advanced Compression
@@ -164,4 +179,6 @@ TABLE=$1"_adv_compression"
 HEADER="GREPME,Host_Name,Instance_Name,Sysdate,Host_name_2,Db_Name,Advanced_Compression,Table_Compression,Count_Nbr,Count_Txt,dba_tables,"
 HEADER=$HEADER"table_Owner,table_name,partition_name,compression,compression_for"
 fnCreateTable $TABLE $HEADER
+fnAddIndex $TABLE idxAdvComp "HOST_NAME,INSTANCE_NAME"
+fnAddIndex $TABLE idxTbleOwner TABLE_OWNER
 

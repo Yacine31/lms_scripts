@@ -39,6 +39,15 @@ echo "<?xml version=\"1.0\"?>
     <Border ss:Position=\"Top\" ss:LineStyle=\"Continuous\" ss:Weight=\"1\"/>
    </Borders>
   </Style>
+ <Style ss:ID=\"TableauErreur\">
+   <Borders>
+    <Border ss:Position=\"Bottom\" ss:LineStyle=\"Continuous\" ss:Weight=\"1\"/>
+    <Border ss:Position=\"Left\" ss:LineStyle=\"Continuous\" ss:Weight=\"1\"/>
+    <Border ss:Position=\"Right\" ss:LineStyle=\"Continuous\" ss:Weight=\"1\"/>
+    <Border ss:Position=\"Top\" ss:LineStyle=\"Continuous\" ss:Weight=\"1\"/>
+   </Borders>
+   <Font ss:FontName=\"Calibri\" x:Family=\"Swiss\" ss:Color=\"#FF0000\" ss:Bold=\"1\"/>
+  </Style>
   <Style ss:ID=\"TableauEntete\">
    <Alignment ss:Horizontal=\"Center\" ss:Vertical=\"Bottom\"/>
    <Borders>
@@ -48,7 +57,7 @@ echo "<?xml version=\"1.0\"?>
     <Border ss:Position=\"Top\" ss:LineStyle=\"Continuous\" ss:Weight=\"1\"/>
    </Borders>
    <Font ss:FontName=\"Calibri\" x:Family=\"Swiss\" ss:Size=\"11\" ss:Color=\"#000000\" ss:Bold=\"1\"/>
-   <Interior ss:Color=\"#92D050\" ss:Pattern=\"Solid\"/>
+   <Interior ss:Color=\"#54BFD3\" ss:Pattern=\"Solid\"/>
   </Style>
   </Styles>" >> $XML_FILE
 }
@@ -111,7 +120,9 @@ do
 		pattern='^[0-9]+([.][0-9]+)?$'         # le pattern recherche des nombres sous la forme 12.3445
 		if ! [[ $c =~ $pattern ]] ; then
 			# $c n'est pas un nombre => Type=String
-			echo "<Cell ss:StyleID=\"TableauTexte\"><Data ss:Type=\"String\">$c</Data></Cell>"   >> $XML_FILE
+ 		    # un test pour voir si le style TableauErreur doit être appliqué
+	        if [[ "$c" != "ND PATCH ERROR" ]]; then styleID=TableauTexte; else styleID=TableauErreur; fi
+			echo "<Cell ss:StyleID=\"$styleID\"><Data ss:Type=\"String\">$c</Data></Cell>"   >> $XML_FILE
 		else
 			# $c est un nombre => Type=Number
 			echo "<Cell ss:StyleID=\"TableauTexte\"><Data ss:Type=\"Number\">$c</Data></Cell>"   >> $XML_FILE
@@ -139,8 +150,8 @@ function print_to_xml {
 
     if [ "$1" ]; then
 	# insertion d'une ligne vide
-	echo "<Row></Row>"    >> $XML_FILE
-	echo "<Row><Cell ss:StyleID=\"TableauTexte\"><Data ss:Type=\"String\">$1</Data></Cell></Row>"   >> $XML_FILE
+	# echo "<Row></Row>"    >> $XML_FILE
+	echo "<Row><Cell ss:StyleID=\"Default\"><Data ss:Type=\"String\">$1</Data></Cell></Row>"   >> $XML_FILE
     fi
 
 }
