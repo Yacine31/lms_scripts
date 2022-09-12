@@ -79,7 +79,9 @@ update ${tCPU}_tmp set CPU_Oracle=CEILING(cast(Core_Count as decimal(4,2))* cast
 
 if [ "$DEBUG" == "1" ]; then echo "[DEBUG] - $SQL"; fi
 
-mysql -u${MYSQL_USER} -p${MYSQL_PWD} --local-infile --database=${MYSQL_DB} -e "$SQL"
+if [ "$DEBUG" == "1" ]; then echo "[DEBUG] - $SQL"; fi
+
+    mysql -u${MYSQL_USER} -p${MYSQL_PWD} --local-infile --database=${MYSQL_DB} -e "$SQL"
 
 # c'est cette table qui va remplacer la table cpu dans la suite du rapport
 
@@ -107,7 +109,11 @@ print_xml_header $XML_FILE
 # 
 echo $YELLOW"Statistiques des serveurs et OS :"$NOCOLOR
 export SQL="select OS, count(*) 'Nombre de serveurs' from $tCPU group by os union select '--- Total des serveurs ---', count(*) from $tCPU;"
-mysql -u${MYSQL_USER} -p${MYSQL_PWD} --database=${MYSQL_DB} -e "$SQL" 
+
+if [ "$DEBUG" == "1" ]; then echo "[DEBUG] - $SQL"; fi
+if [ "$DEBUG" == "1" ]; then echo "[DEBUG] - $SQL"; fi
+
+    mysql -u${MYSQL_USER} -p${MYSQL_PWD} --database=${MYSQL_DB} -e "$SQL" 
 
 #--------------------------------------------------------------------------------#
 # ouverture d'une feuille Excel pour mettre les infos des serveurs
@@ -120,7 +126,12 @@ open_xml_sheet
 echo $YELLOW"Les bases et les versions :"$NOCOLOR
 export SQL="select banner 'Version', count(*) 'Nombre de bases' from $tVersion group by banner 
 union select '--- Total des bases ---', count(*) from $tVersion;"
-mysql -u${MYSQL_USER} -p${MYSQL_PWD} --database=${MYSQL_DB} -e "$SQL" 
+
+if [ "$DEBUG" == "1" ]; then echo "[DEBUG] - $SQL"; fi
+
+if [ "$DEBUG" == "1" ]; then echo "[DEBUG] - $SQL"; fi
+
+    mysql -u${MYSQL_USER} -p${MYSQL_PWD} --database=${MYSQL_DB} -e "$SQL" 
 
 # export des données 
 # export_to_xml 
@@ -134,6 +145,8 @@ select concat('Standard Edition   : ', count(*)) from $tVersion where banner lik
 select concat('Enterprise Edition : ', count(*)) from $tVersion where banner like '%Oracle%' and banner like '%Enterprise%' ;
 select '----------------------------------' from dual;
 "
+if [ "$DEBUG" == "1" ]; then echo "[DEBUG] - $SQL"; fi
+
 mysql -ss -u${MYSQL_USER} -p${MYSQL_PWD} --local-infile --database=${MYSQL_DB} -e "$SQL" 
 
 # export des données 
@@ -145,9 +158,16 @@ export SQL="select Host_Name, os, Marque, Model, Processor_Type
 from $tCPU where host_name not in (SELECT Host_Name FROM $tVersion)
 order by Host_Name;
 "
-RESULT=$(mysql -u${MYSQL_USER} -p${MYSQL_PWD} --database=${MYSQL_DB} -e "$SQL")
+
+if [ "$DEBUG" == "1" ]; then echo "[DEBUG] - $SQL"; fi
+
+if [ "$DEBUG" == "1" ]; then echo "[DEBUG] - $SQL"; fi
+
+    RESULT=$(mysql -u${MYSQL_USER} -p${MYSQL_PWD} --database=${MYSQL_DB} -e "$SQL")
 if [ "$RESULT" != "" ]; then
     echo $RED"Les serveurs sans base de données"$NOCOLOR
+if [ "$DEBUG" == "1" ]; then echo "[DEBUG] - $SQL"; fi
+
     mysql -u${MYSQL_USER} -p${MYSQL_PWD} --local-infile --database=${MYSQL_DB} -e "$SQL" 
 
     # export des données 
@@ -158,9 +178,15 @@ fi
 # ici on vérifie si tous les serveurs récupérés depuis les fichiers CSV des bases, ont un résultat du script lms_cpuq.
 export SQL="SELECT distinct Host_Name FROM $tVersion where Host_Name not in (select Host_Name from $tCPU) order by Host_Name;"
 
-RESULT=$(mysql -u${MYSQL_USER} -p${MYSQL_PWD} --database=${MYSQL_DB} -e "$SQL")
+if [ "$DEBUG" == "1" ]; then echo "[DEBUG] - $SQL"; fi
+
+if [ "$DEBUG" == "1" ]; then echo "[DEBUG] - $SQL"; fi
+
+    RESULT=$(mysql -u${MYSQL_USER} -p${MYSQL_PWD} --database=${MYSQL_DB} -e "$SQL")
 if [ "$RESULT" != "" ]; then
     echo $RED"Les serveur sans le résultat de lms_cpuq.sh"$NOCOLOR
+
+if [ "$DEBUG" == "1" ]; then echo "[DEBUG] - $SQL"; fi
 
     mysql -u${MYSQL_USER} -p${MYSQL_PWD} --local-infile --database=${MYSQL_DB} -e "$SQL" 
 
@@ -204,7 +230,9 @@ SQL="SELECT $SELECT from $FROM where $WHERE order by $ORDERBY ;"
 if [ "$DEBUG" == "1" ]; then echo "[DEBUG] - $SQL"; fi
 
 
-RESULT=$(mysql -u${MYSQL_USER} -p${MYSQL_PWD} --database=${MYSQL_DB} -e "$SQL")
+if [ "$DEBUG" == "1" ]; then echo "[DEBUG] - $SQL"; fi
+
+    RESULT=$(mysql -u${MYSQL_USER} -p${MYSQL_PWD} --database=${MYSQL_DB} -e "$SQL")
 if [ "$RESULT" != "" ]; then
     echo $YELLOW
     echo "#--------------------------------------------------------------------------------#"
@@ -215,6 +243,8 @@ if [ "$RESULT" != "" ]; then
     echo 
     echo "Les serveurs et bases en Standard Edition :"
     echo 
+if [ "$DEBUG" == "1" ]; then echo "[DEBUG] - $SQL"; fi
+
     mysql -u${MYSQL_USER} -p${MYSQL_PWD} --database=${MYSQL_DB} -e "$SQL" 
 
     #--------- insertion des données de la requête dans le fichier XML
@@ -243,6 +273,8 @@ if [ "$RESULT" != "" ]; then
 
     if [ "$DEBUG" == "1" ]; then echo "[DEBUG] - $SQL"; fi
 
+if [ "$DEBUG" == "1" ]; then echo "[DEBUG] - $SQL"; fi
+
     mysql -u${MYSQL_USER} -p${MYSQL_PWD} --database=${MYSQL_DB} -e "$SQL" 
 
     #--------- insertion des données de la requête dans le fichier XML
@@ -267,13 +299,17 @@ export SQL="select $SELECT_EE from $FROM where $WHERE order by $ORDERBY;"
 
 if [ "$DEBUG" == "1" ]; then echo "[DEBUG] - $SQL"; fi
 
-RESULT=$(mysql -u${MYSQL_USER} -p${MYSQL_PWD} --database=${MYSQL_DB} -e "$SQL")
+if [ "$DEBUG" == "1" ]; then echo "[DEBUG] - $SQL"; fi
+
+    RESULT=$(mysql -u${MYSQL_USER} -p${MYSQL_PWD} --database=${MYSQL_DB} -e "$SQL")
 if [ "$RESULT" != "" ]; then
     echo $YELLOW
     echo "#--------------------------------------------------------------------------------#"
     echo "# Bases de données en Enterprise Edition"
     echo "#--------------------------------------------------------------------------------#"
     echo $NOCOLOR
+
+if [ "$DEBUG" == "1" ]; then echo "[DEBUG] - $SQL"; fi
 
     mysql -u${MYSQL_USER} -p${MYSQL_PWD} --local-infile --database=${MYSQL_DB} -e "$SQL" 
 
@@ -291,6 +327,8 @@ if [ "$RESULT" != "" ]; then
     export ORDERBY="c.physical_server, c.Host_Name, c.os"
     
     export SQL="select $SELECT_NON_AIX from $FROM where $WHERE"
+if [ "$DEBUG" == "1" ]; then echo "[DEBUG] - $SQL"; fi
+
     RESULT=$(mysql -u${MYSQL_USER} -p${MYSQL_PWD} --database=${MYSQL_DB} -e "$SQL")
     if [ "$RESULT" != "" ]; then
         # affichage du tableau pour le calcul du nombre de processeur
@@ -310,11 +348,15 @@ if [ "$RESULT" != "" ]; then
 
     export SQL="select $SELECT_EE_AIX from $FROM where $WHERE order by $ORDERBY ;"
 
+if [ "$DEBUG" == "1" ]; then echo "[DEBUG] - $SQL"; fi
+
     RESULT=$(mysql -u${MYSQL_USER} -p${MYSQL_PWD} --database=${MYSQL_DB} -e "$SQL")
     if [ "$RESULT" != "" ]; then
         if [ "$DEBUG" == "1" ]; then echo "[DEBUG] - $SQL"; fi
         echo "Caractéristiques des serveurs AIX : "
         echo "EC = Entitled Capacity, ACiP = Active CPUs in Pool, PoolID = Shared Pool ID, OVC = Online Virtual CPU, APC = Active Physical CPUs"
+if [ "$DEBUG" == "1" ]; then echo "[DEBUG] - $SQL"; fi
+
         mysql -u${MYSQL_USER} -p${MYSQL_PWD} --local-infile --database=${MYSQL_DB} -e "$SQL" 
 
         # export des données
