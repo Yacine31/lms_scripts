@@ -76,6 +76,9 @@ alter table ${tCPU}_tmp add column CPU_Oracle int;
 
 update ${tCPU}_tmp set CPU_Oracle=CEILING(cast(Core_Count as decimal(4,2))* cast(Core_Factor as decimal(4,2)));
 "
+
+if [ "$DEBUG" == "1" ]; then echo "[DEBUG] - $SQL"; fi
+
 mysql -u${MYSQL_USER} -p${MYSQL_PWD} --local-infile --database=${MYSQL_DB} -e "$SQL"
 
 # c'est cette table qui va remplacer la table cpu dans la suite du rapport
