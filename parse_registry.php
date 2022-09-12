@@ -23,12 +23,17 @@ foreach($files as $file){
 // parcourir tous les fichiers a la recherche de registry.xml
 // ensuite extraire les informations suivante : Hostname, Home ou est installé Weblo, Nom du produit, Version
 // si une installation de Java est présente, alors le nom est affiché
+    if( strstr($file, 'config.xml' ))
+	  echo "Nom de fichier = " . $file . "\n";
+	// $xml = simplexml_load_file($file);
+
     if( strstr($file, '/registry.xml' )){
-	// echo "Nom de fichier = " . $file . "\n";
+	//  echo "Nom de fichier = " . $file . "\n";
 	$xml = simplexml_load_file($file);
 
 	foreach($xml->host as $host){
 	    print "========\n";
+	    print "Filename=" . $file . "\n";
 	    print "Hostname=" . $host['name'] . "\n";
 	    print "Home=" . $host['home'] . "\n";
 	    $wls_home = $host['home'];
@@ -48,16 +53,17 @@ foreach($files as $file){
 	}
 	print "\n";
     
-        // on parcour le home pour rechercher le fichier ou les fichiers config.xml des différents domaines	
+    // on parcour le home pour rechercher le fichier ou les fichiers config.xml des différents domaines	
 	// on supprime le premier / du nom du home et on commence la recherche
 	// print "WLS_HOME = " . substr($wls_home,'1') . "\n";
-	$working_dir = dirname(realpath($file));
+	// $working_dir = dirname(realpath($file));
 	// print "Working Directory = " . $working_dir . "\n";
-        $config_files = ListIn(dirname(realpath($file)));
+    //     $config_files = ListIn(dirname(realpath($file)));
 	foreach($config_files as $config_file){
-	    if(strstr($config_file, 'user_projects') && strstr($config_file, 'config/config.xml' )){
+	    // if(strstr($config_file, 'user_projects') && strstr($config_file, 'config/config.xml' )){
 	    // if(strstr($config_file, 'config/config.xml' )){
-		// print "Fichier config xml = " . $working_dir . "/" . $config_file . "\n" ;
+	    if(strstr($config_file, '/config.xml' )){
+		  print "Fichier config xml = " . $working_dir . "/" . $config_file . "\n" ;
 		$xml = simplexml_load_file($working_dir . "/" . $config_file);
 		// domain
 		print "--------\ndomain name = ".$xml->name . "\n--------\n";
