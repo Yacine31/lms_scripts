@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -x
 # interroger les tables pour trouver les infos
 # 19/05/2014 - le script est appelé depuis extract.sh
 # 20/05/2014 - séparation des affichages pour AIX : les colonnes ne sont pas les mêmes
