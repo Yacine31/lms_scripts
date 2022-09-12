@@ -15,7 +15,7 @@
 
 # MYSQL_ARGS="--defaults-file=/etc/mysql/debian.cnf"
 
-export DEBUG=0
+export DEBUG=1
 
 # Inclusion des fonctions
 #export SCRIPTS_DIR="/home/merlin/lms_scripts"
