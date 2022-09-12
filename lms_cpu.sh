@@ -434,8 +434,8 @@ function get_aix_params {
 		Partition_Number=`cat -v "$@" | grep /usr/bin/lparstat -A3 | tail -1 | cut -d':' -f2 | sed 's/^ *//g'`
 		Partition_Type=`cat -v "$@" | grep /usr/bin/lparstat -A4 | tail -1 | cut -d':' -f2 | sed 's/^ *//g'`
 		Partition_Mode=`cat -v "$@" | grep /usr/bin/lparstat -A5 | tail -1 | cut -d':' -f2 | sed 's/^ *//g'`
-		# Entitled_Capacity=`cat -v "$@" | grep /usr/bin/lparstat -A6 | tail -1 | cut -d':' -f2 | sed 's/^ *//g'| sed 's/\./,/g'`
-		Entitled_Capacity=`cat -v "$@" | grep /usr/bin/lparstat -A6 | tail -1 | cut -d':' -f2 | sed 's/^ *//g'`
+		Entitled_Capacity=`cat -v "$@" | grep /usr/bin/lparstat -A6 | tail -1 | cut -d':' -f2 | sed 's/^ *//g'| sed 's/\./,/g'`
+		# Entitled_Capacity=`cat -v "$@" | grep /usr/bin/lparstat -A6 | tail -1 | cut -d':' -f2 | sed 's/^ *//g'`
 		Active_CPUs_in_Pool=`cat -v "$@" | grep /usr/bin/lparstat -A21 | tail -1 | cut -d':' -f2 | sed 's/^ *//g'`
 		Shared_Pool_ID=`cat -v "$@" | grep /usr/bin/lparstat -A8 | tail -1 | cut -d':' -f2 | sed 's/^ *//g'`
 		Online_Virtual_CPUs=`cat -v "$@" | grep /usr/bin/lparstat -A9 | tail -1 | cut -d':' -f2 | sed 's/^ *//g'`
