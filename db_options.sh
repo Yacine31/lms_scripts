@@ -1,4 +1,4 @@
-#!/bin/bash 
+#!/bin/bash -x
 :<<HISTORIQUE
 20/05/2014 - insertion des données sur le partitioning dans la base MySQL
 22/05/2014 - insersion des données des fichiers versions.csv ds la base

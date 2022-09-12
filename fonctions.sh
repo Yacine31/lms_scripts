@@ -22,7 +22,7 @@ export NOCOLOR=$(tput sgr 0)
 # Les constantes 
 #--------------------------------------------------------------------------------#
 
-MYSQL_DB="audit"
+MYSQL_DB="audit_wafa"
 MYSQL_USER="root"
 MYSQL_PWD="root"
 
