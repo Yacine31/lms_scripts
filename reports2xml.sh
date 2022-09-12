@@ -57,10 +57,14 @@ export tMultitenant=$PROJECT_NAME"_multitenant"    # option multitenant en 12c
 SQL="drop table if exists ${tCPU}_tmp;
 create table ${tCPU}_tmp as 
     select *,
-        case Partition_Mode
-            when 'Uncapped' then least(cast(Active_CPUs_in_Pool as signed), cast(Online_Virtual_CPUs as signed))
-            when 'Capped'   then cast(Entitled_Capacity as decimal(4,2))
-            when 'Donating' then cast(Entitled_Capacity as decimal(4,2))
+        case Partition_Type
+            when 'Dedicated-SMT-4'  then cast(Entitled_Capacity as decimal(4,2))
+            when 'Shared-SMT-4' then
+                case Partition_Mode
+                    when 'Uncapped' then least(cast(Active_CPUs_in_Pool as signed), cast(Online_Virtual_CPUs as signed))
+                    when 'Capped'   then cast(Entitled_Capacity as decimal(4,2))
+                    when 'Donating' then cast(Entitled_Capacity as decimal(4,2))
+                end 
         end as Core_Count,
     case left(reverse(Processor_Type),1)
             when 4 then 0.75
@@ -68,6 +72,7 @@ create table ${tCPU}_tmp as
             when 6 then 1
             when 7 then 1
             when 8 then 1
+            when 9 then 1
     end as Core_Factor
     from ${tCPU} 
     order by physical_server, host_name;
